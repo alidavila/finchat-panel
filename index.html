@@ -152,10 +152,10 @@ tg?.ready(); tg?.expand();
 tg?.setHeaderColor?.('#0D1422');
 tg?.setBackgroundColor?.('#080C15');
 
-// Base de la API: misma origen si vive en Vercel; absoluta si se sirve desde storage externo
-const API_BASE = location.origin.includes('.supabase.co')
-  ? 'https://finchat-green.vercel.app'
-  : '';
+// Base de la API: misma origen solo si vive en Vercel; siempre absoluta si no
+const API_BASE = location.hostname.includes('vercel.app')
+  ? ''
+  : 'https://finchat-green.vercel.app';
 
 const fmt  = n => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtK = n => { n=Number(n||0); const s=n<0?'−':''; n=Math.abs(n);
