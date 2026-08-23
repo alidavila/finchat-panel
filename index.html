@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FinChat · Private Office</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#080C15; --bg1:#0D1422;
+    --card:rgba(255,255,255,.028);
+    --line:rgba(238,232,220,.07);
+    --line-gold:rgba(201,170,110,.16);
+    --gold:#C9AA6E; --gold-bright:#E3C88F;
+    --ink:#F2EDE3; --muted:#8E99AB; --faint:#5B6473;
+    --pos:#3ECF8E; --neg:#E5697A;
+    --serif:'Fraunces',Georgia,serif; --sans:'Inter',-apple-system,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:var(--sans);-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg0);}
+  body{
+    color:var(--ink); min-height:100vh;
+    background:
+      radial-gradient(1200px 500px at 50% -10%, rgba(201,170,110,.055), transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg0) 40%);
+    padding:20px 18px 48px;
+  }
+  /* ── Barra superior ── */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
+  .brand{font-size:10px;letter-spacing:.34em;color:var(--gold);font-weight:600;text-transform:uppercase;display:flex;align-items:center;gap:9px;}
+  .brand::before{content:'';width:22px;height:1px;background:var(--gold);opacity:.55;display:inline-block;}
+  .stamp{font-size:10px;color:var(--faint);letter-spacing:.08em;}
+
+  h2.sec{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:26px 0 12px;display:flex;align-items:center;gap:10px;}
+  h2.sec::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  /* ── Hero patrimonio ── */
+  .hero{
+    position:relative; overflow:hidden;
+    border:1px solid var(--line-gold); border-radius:20px;
+    background:linear-gradient(160deg, rgba(201,170,110,.06), rgba(255,255,255,.015) 45%);
+    padding:24px 22px 20px;
+  }
+  .hero .lbl{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:10px;}
+  .hero .num{font-family:var(--serif);font-weight:500;font-size:44px;line-height:1;letter-spacing:.01em;font-variant-numeric:lining-nums;}
+  .hero .row{display:flex;align-items:baseline;gap:14px;margin-top:14px;flex-wrap:wrap;}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;border:1px solid var(--line);}
+  .badge.up{color:var(--pos);border-color:rgba(62,207,142,.25);background:rgba(62,207,142,.06);}
+  .badge.down{color:var(--neg);border-color:rgba(229,105,122,.25);background:rgba(229,105,122,.06);}
+  .badge.flat{color:var(--muted);}
+  .badge small{color:inherit;opacity:.65;font-weight:500;}
+  .hero .sub{font-size:11.5px;color:var(--muted);}
+
+  /* ── Tiles de métricas ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .tile{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:16px 16px 14px; cursor:pointer; transition:border-color .18s ease, transform .12s ease;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .tile:active{transform:scale(.98);}
+  .tile.open{border-color:var(--line-gold);background:rgba(201,170,110,.04);}
+  .tile .q{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .tile .v{font-family:var(--serif);font-size:26px;font-weight:500;line-height:1.05;font-variant-numeric:lining-nums;}
+  .tile .v.pos{color:var(--pos);} .tile .v.neg{color:var(--neg);}
+  .expl{display:none;font-size:11.5px;line-height:1.55;color:var(--muted);border-top:1px solid var(--line);padding-top:9px;margin-top:5px;}
+  .open .expl{display:block;}
+
+  /* Anillo tasa de ahorro */
+  .ring-wrap{position:relative;width:64px;height:64px;margin-top:2px;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:rgba(255,255,255,.07);stroke-width:5;}
+  .ring-fg{fill:none;stroke:var(--gold);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.22,1,.36,1);}
+  .ring-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+
+  .bar{height:4px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:auto;}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold-bright));width:0;transition:width 1s cubic-bezier(.22,1,.36,1);}
+
+  /* ── Gráfico economía ── */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 16px 12px;}
+  .kpis{display:flex;gap:8px;margin-bottom:14px;}
+  .kpi{flex:1;text-align:center;padding:10px 4px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid var(--line);}
+  .kpi b{display:block;font-family:var(--serif);font-size:19px;font-weight:500;font-variant-numeric:lining-nums;}
+  .kpi span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);}
+  .up-t{color:var(--pos);} .down-t{color:var(--neg);} .flat-t{color:var(--muted);}
+  #chart{width:100%;height:150px;display:block;}
+  .legend{display:flex;justify-content:center;gap:16px;font-size:10px;color:var(--faint);margin-top:8px;}
+  .legend i{display:inline-block;width:14px;height:2px;background:var(--gold);vertical-align:middle;margin-right:5px;border-radius:2px;}
+  .legend i.fill{height:8px;opacity:.18;}
+
+  /* ── Acciones rápidas ── */
+  .actions{display:flex;gap:8px;}
+  .act{
+    flex:1;padding:13px 4px;border-radius:14px;text-align:center;
+    background:rgba(201,170,110,.05);border:1px solid var(--line-gold);
+    color:var(--gold-bright);font-size:11px;font-weight:600;letter-spacing:.04em;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .act:active{transform:scale(.95);background:rgba(201,170,110,.12);}
+  .act .ic{display:block;font-size:17px;margin-bottom:4px;}
+
+  /* ── Cuentas ── */
+  .acc{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:9px;overflow:hidden;}
+  .acc-head{display:flex;justify-content:space-between;align-items:center;padding:15px 16px;cursor:pointer;}
+  .acc-head:active{background:rgba(255,255,255,.02);}
+  .acc-name{font-weight:600;font-size:14px;letter-spacing:.01em;}
+  .acc-meta{font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.16em;margin-top:3px;}
+  .acc-right{text-align:right;}
+  .acc-saldo{font-family:var(--serif);font-size:19px;font-weight:500;font-variant-numeric:lining-nums;}
+  .chev{color:var(--faint);font-size:11px;margin-left:10px;transition:transform .25s ease;display:inline-block;}
+  .acc.open .chev{transform:rotate(180deg);}
+  .txs{display:none;border-top:1px solid var(--line);max-height:216px;overflow-y:auto;}
+  .acc.open .txs{display:block;}
+  .tx{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;font-size:12.5px;border-bottom:1px solid rgba(255,255,255,.035);}
+  .tx:last-child{border-bottom:none;}
+  .tx-d{color:#C6CEDA;max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tx-w{display:flex;align-items:center;gap:10px;}
+  .tx-cat{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.1em;}
+  .tx-a{font-family:var(--serif);font-size:15px;font-weight:500;font-variant-numeric:lining-nums;}
+  .pos{color:var(--pos);} .neg{color:var(--neg);}
+  .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:2px;}
+
+  /* ── Deudas ── */
+  .debt{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:9px;}
+  .debt .r1{display:flex;justify-content:space-between;align-items:baseline;}
+  .debt .nm{font-weight:600;font-size:14px;}
+  .debt .amt{font-family:var(--serif);font-size:18px;color:var(--neg);}
+  .debt .pbar{height:4px;background:rgba(229,105,122,.12);border-radius:99px;margin-top:11px;overflow:hidden;}
+  .debt .pbar i{display:block;height:100%;background:linear-gradient(90deg,#E5697A,#c9536a);border-radius:99px;}
+
+  .empty{text-align:center;color:var(--faint);padding:26px 14px;font-size:12.5px;line-height:1.7;border:1px dashed var(--line);border-radius:16px;}
+  .empty b{color:var(--muted);}
+  footer{margin-top:30px;text-align:center;font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--faint);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">FinChat · Private Office</span>
+  <span class="stamp" id="stamp"></span>
+</div>
+
+<div id="app"><div class="empty">Preparando tu oficina…</div></div>
+
+<footer>Serenidad · Precisión · Dirección</footer>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
+tg?.setHeaderColor?.('#0D1422');
+tg?.setBackgroundColor?.('#080C15');
+
+// Base de la API: misma origen si vive en Vercel; absoluta si se sirve desde storage externo
+const API_BASE = location.origin.includes('.supabase.co')
+  ? 'https://finchat-green.vercel.app'
+  : '';
+
+const fmt  = n => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK = n => { n=Number(n||0); const s=n<0?'−':''; n=Math.abs(n);
+  return s+'$'+(Math.abs(n)>=10000?(n/1000).toFixed(1)+'k':n.toLocaleString('en-US',{maximumFractionDigits:0})); };
+const pctS = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(1)+'%';
+const cls  = n => n>=0?'pos':'neg';
+const tcls = v => v==null?'flat-t':v>=0?'up-t':'down-t';
+
+async function load(){
+  try{
+    const init = tg?.initData || '';
+    const res  = await fetch(API_BASE + '/api/miniapp?init=' + encodeURIComponent(init));
+    if(!res.ok) throw 0;
+    render(await res.json());
+  }catch(e){
+    document.getElementById('app').innerHTML =
+      '<div class="empty">No pude validar tu sesión.<br>Abre el panel desde el chat de <b>@FinChatAli_bot</b>.</div>';
+  }
+}
+
+function badge(p){ 
+  if(p==null) return '<span class="badge flat">— <small>sin base</small></span>';
+  return p>=0
+    ? `<span class="badge up">▲ ${p.toFixed(1)}%</span>`
+    : `<span class="badge down">▼ ${Math.abs(p).toFixed(1)}%</span>`;
+}
+
+function drawChart(series){
+  const cv = document.getElementById('chart'); if(!cv || !series?.length) return;
+  const dpr = window.devicePixelRatio || 2;
+  const W = cv.clientWidth, H = cv.clientHeight;
+  cv.width = W*dpr; cv.height = H*dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr,dpr);
+
+  const vals = series.map(m=>m.varAbs||0);
+  const max = Math.max(...vals, 100), min = Math.min(...vals, -100);
+  const pad = 8, iw = W-pad*2, ih = H-pad*2;
+  const X = i => pad + (iw * (i/(series.length-1 || 1)));
+  const Y = v => pad + ih * (1 - (v-min)/(max-min || 1));
+
+  // zona cero
+  ctx.strokeStyle='rgba(238,232,220,.08)'; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(pad,Y(0)); ctx.lineTo(W-pad,Y(0)); ctx.stroke(); ctx.setLineDash([]);
+
+  // relleno
+  const grad = ctx.createLinearGradient(0,pad,0,H);
+  grad.addColorStop(0,'rgba(201,170,110,.22)'); grad.addColorStop(1,'rgba(201,170,110,0)');
+  ctx.beginPath();
+  series.forEach((_,i)=> i?ctx.lineTo(X(i),Y(vals[i])):ctx.moveTo(X(i),Y(vals[i])));
+  ctx.lineTo(X(series.length-1),Y(min>0?min*0:0)); ctx.lineTo(X(0),Y(0)); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+
+  // línea
+  ctx.beginPath();
+  series.forEach((_,i)=> i?ctx.lineTo(X(i),Y(vals[i])):ctx.moveTo(X(i),Y(vals[i])));
+  ctx.strokeStyle='#C9AA6E'; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+
+  // puntos + etiquetas mes
+  ctx.font='9px Inter'; ctx.textAlign='center';
+  series.forEach((m,i)=>{
+    ctx.beginPath(); ctx.arc(X(i),Y(vals[i]),3,0,7); ctx.fillStyle=(vals[i]>=0)?'#3ECF8E':'#E5697A'; ctx.fill();
+    ctx.fillStyle='rgba(139,147,167,.85)'; ctx.fillText(m.mes, X(i), H-1);
+  });
+}
+
+function render(s){
+  document.getElementById('stamp').textContent =
+    new Date().toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).toUpperCase();
+  window._txs = s.transactions || [];
+  const g = s.growth || {};
+  const runway = s.runwayDays===Infinity ? 'Sin prisa' : s.runwayDays + ' días';
+  const runPct = s.runwayDays===Infinity ? 100 : Math.min(100,(s.runwayDays/90)*100);
+  const sr = Math.max(0, Math.min(100, s.savingsRatePct ?? 0));
+  const circ = 2*Math.PI*27;
+  const flow = s.monthlyIncome - s.monthlyExpensesTotal;
+
+  let html = `
+  <!-- PATRIMONIO -->
+  <div class="hero">
+    <div class="lbl">Patrimonio Neto</div>
+    <div class="num">${fmt(s.netWorth)}</div>
+    <div class="row">
+      ${badge(g.momGrowthPct)}
+      <span class="sub">este mes · ritmo anualizado ${pctS(g.annualizedPct)}</span>
+    </div>
+  </div>
+
+  <!-- MÉTRICAS -->
+  <h2 class="sec">Estado del mes</h2>
+  <div class="grid">
+    <div class="tile" onclick="this.classList.toggle('open')">
+      <span class="q">Flujo del mes</span>
+      <span class="v ${cls(flow)}">${fmt(flow)}</span>
+      <div class="expl">Ingresos ${fmt(s.monthlyIncome)} − gastos ${fmt(s.monthlyExpensesTotal)}${s.debtPaymentsThisMonth>0?`. Incluye ${fmt(s.debtPaymentsThisMonth)} de pago de deuda, que no es consumo.`:'.'}</div>
+    </div>
+    <div class="tile" onclick="this.classList.toggle('open')">
+      <span class="q">Tasa de ahorro</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="v" style="color:var(--gold-bright)">${s.savingsRatePct==null?'—':sr.toFixed(0)+'%'}</span>
+        <div class="ring-wrap">
+          <svg width="64" height="64"><circle class="ring-bg" cx="32" cy="32" r="27"/>
+          <circle class="ring-fg" cx="32" cy="32" r="27" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-sr/100)}"/></svg>
+          <span class="ring-txt" style="color:var(--gold-bright)">${sr>=20?'✦':''}</span>
+        </div>
+      </div>
+      <div class="expl">De cada dólar que entra, cuánto te queda. Sobre 20% es territorio sólido.</div>
+    </div>
+    <div class="tile" onclick="this.classList.toggle('open')">
+      <span class="q">Autonomía</span>
+      <span class="v">${runway}</span>
+      <div class="bar"><i data-w="${runPct}"></i></div>
+      <div class="expl">Días que tu liquidez cubre al ritmo real de gasto (sin contar pagos de deuda). La barra marca avance hacia 90 días.</div>
+    </div>
+    <div class="tile" onclick="this.classList.toggle('open')">
+      <span class="q">Deuda total</span>
+      <span class="v neg">${fmt(s.totalDebt)}</span>
+      <div class="expl">Tarjetas + préstamos activos.${s.passiveIncomeThisMonth>0?` Tu ingreso pasivo este mes: ${fmt(s.passiveIncomeThisMonth)}.`:''}</div>
+    </div>
+  </div>
+
+  <!-- ECONOMÍA -->
+  <h2 class="sec">Tu Economía</h2>
+  <div class="panel">
+    <div class="kpis">
+      <div class="kpi"><b class="${tcls(g.momGrowthPct)}">${pctS(g.momGrowthPct)}</b><span>Mes</span></div>
+      <div class="kpi"><b class="${tcls(g.annualizedPct)}">${pctS(g.annualizedPct)}</b><span>Anualizado</span></div>
+      <div class="kpi"><b class="${tcls(g.yoyGrowthPct)}">${pctS(g.yoyGrowthPct)}</b><span>12 meses</span></div>
+    </div>
+    <canvas id="chart"></canvas>
+    <div class="legend"><span><i></i>Variación del patrimonio ($)</span><span><i class="fill"></i>Zona positiva</span></div>
+  </div>
+
+  <!-- ACCIONES -->
+  <h2 class="sec">Acciones</h2>
+  <div class="actions">
+    <div class="act" onclick="tg.sendData('Quiero registrar un gasto')"><span class="ic">↗︎</span>Gasto</div>
+    <div class="act" onclick="tg.sendData('Quiero registrar un ingreso')"><span class="ic">↙︎</span>Ingreso</div>
+    <div class="act" onclick="tg.sendData('Quiero pagar una deuda')"><span class="ic">◈</span>Pagar</div>
+    <div class="act" onclick="location.reload()"><span class="ic">⟳</span>Refrescar</div>
+  </div>`;
+
+  // DEUDAS
+  if(s.activeDebts?.length){
+    html += `<h2 class="sec">Compromisos</h2>`;
+    s.activeDebts.forEach(d=>{
+      const paidPct = d.saldo>0 ? Math.min(100,((d.initial??d.saldo)-d.saldo)/(d.initial??d.saldo)*100+0) : 100;
+      html += `<div class="debt"><div class="r1"><span class="nm">${d.nombre}</span><span class="amt">${fmt(d.saldo)}</span></div>
+        <div class="pbar"><i style="width:${paidPct}%"></i></div></div>`;
+    });
+  }
+
+  // CUENTAS
+  html += `<h2 class="sec">Cuentas</h2>`;
+  if(!s.accounts?.length){
+    html += `<div class="empty">Aún no tienes cuentas.<br>Escribe en el chat:<br><b>«Creé una cuenta BofA con $500»</b></div>`;
+  } else {
+    const tmap = {};
+    window._txs.forEach(t=>{
+      [t.account_id,t.destination_account_id].forEach(id=>{
+        if(id)(tmap[id]=tmap[id]||[]).push(t);
+      });
+    });
+    Object.values(tmap).forEach(l=>l.sort((a,b)=>new Date(b.tx_date)-new Date(a.tx_date)));
+    const icons={'Líquida':'◈','Crédito':'▣','Ahorro':'◇','Inversión':'◆','Otro':'○'};
+    html += s.accounts.map(a=>{
+      const txs=tmap[a.id]||[];
+      return `<div class="acc">
+        <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+          <div><div class="acc-name">${icons[a.tipo]||'○'} ${a.nombre}${a.meta?' <span style="color:var(--gold);font-size:10px;letter-spacing:.1em">META</span>':''}</div>
+            <div class="acc-meta">${a.tipo}</div></div>
+          <div class="acc-right"><div class="acc-saldo ${cls(a.saldo)}">${fmt(a.saldo)}</div></div>
+        </div>
+        <div class="txs">${
+          txs.length ? txs.slice(0,15).map(t=>`
+            <div class="tx"><span class="tx-d">${t.description}${t.category?` <span class="tx-cat">· ${t.category}</span>`:''}</span>
+              <span class="tx-a ${t.type==='Ingreso'?'pos':t.type==='Gasto'?'neg':''}">${t.type==='Ingreso'?'+':t.type==='Gasto'?'−':''}${fmt(t.amount)}</span></div>`).join('')
+          : '<div class="tx"><span class="tx-d" style="color:var(--faint)">Sin movimientos aún</span></div>'
+        }</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('app').innerHTML = html;
+
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.bar i[data-w]').forEach(b=> b.style.width=b.dataset.w+'%');
+    drawChart(g.lastMonths && g.lastMonths.length ? [...g.lastMonths].reverse() : []);
+  });
+}
+
+load();
+setInterval(load, 90000);
+</script>
+</body>
+</html>
