@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>FinChat · Private Office</title>
+<title>FinChat · Mi Oficina</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,7 +101,7 @@
   .act:active{transform:scale(.95);background:rgba(201,170,110,.12);}
   .act .ic{display:block;font-size:17px;margin-bottom:4px;}
 
-  /* ── Cuentas ── */
+  /* ── Cuentas (grupos desplegables y detalle) ── */
   .acc{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:9px;overflow:hidden;}
   .acc-head{display:flex;justify-content:space-between;align-items:center;padding:15px 16px;cursor:pointer;}
   .acc-head:active{background:rgba(255,255,255,.02);}
@@ -122,6 +122,37 @@
   .pos{color:var(--pos);} .neg{color:var(--neg);}
   .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:2px;}
 
+  /* ── Grupos de cuentas (hamburguesas) ── */
+  .grp-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 16px;cursor:pointer;user-select:none;
+  }
+  .grp-head:active{background:rgba(255,255,255,.02);}
+  .grp-ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;margin-right:11px;font-size:13px;border:1px solid var(--line);}
+  .grp-title{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#C6CEDA;}
+  .grp-sum{font-size:9px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-top:2px;}
+  .grp-total{font-family:var(--serif);font-size:16px;font-weight:500;font-variant-numeric:lining-nums;}
+  .grp-body{display:none;border-top:1px solid var(--line);}
+  .grp.open .grp-body{display:block;}
+  .grp{background:rgba(255,255,255,.012);border:1px solid var(--line);border-radius:18px;margin-bottom:10px;overflow:hidden;}
+  .grp.open{border-color:var(--line-gold);}
+
+  /* ── Modal (pantalla emergente, estilo Lucía) ── */
+  .modal-ov{position:fixed;inset:0;z-index:60;background:rgba(4,7,12,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px;}
+  .modal{width:100%;max-width:420px;max-height:82vh;overflow-y:auto;background:linear-gradient(170deg,#101827,#0B111D);border:1px solid var(--line-gold);border-radius:22px;padding:20px;animation:mup .22s ease;}
+  @keyframes mup{from{opacity:0;transform:translateY(14px) scale(.98);}to{opacity:1;transform:none;}}
+  .modal h3{font-family:var(--serif);font-weight:500;font-size:19px;margin-bottom:2px;}
+  .modal .msub{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:16px;}
+  .mcard{border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:9px;background:rgba(255,255,255,.02);}
+  .mcard .r1{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .mcard .nm{font-weight:600;font-size:13.5px;}
+  .mcard .amt{font-family:var(--serif);font-size:15px;font-weight:500;}
+  .mcard .r2{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);margin-top:5px;letter-spacing:.04em;}
+  .mtotal{display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(62,207,142,.25);background:rgba(62,207,142,.06);border-radius:14px;padding:13px 14px;margin-bottom:12px;}
+  .mtotal .lbl{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+  .mtotal .val{font-family:var(--serif);font-size:21px;color:var(--pos);font-weight:500;}
+  .mclose{margin-top:6px;width:100%;padding:12px;border-radius:13px;border:1px solid var(--line);background:rgba(201,170,110,.06);color:var(--gold-bright);font-size:12px;font-weight:600;letter-spacing:.08em;cursor:pointer;}
+
   /* ── Deudas ── */
   .debt{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:9px;}
   .debt .r1{display:flex;justify-content:space-between;align-items:baseline;}
@@ -138,7 +169,7 @@
 <body>
 
 <div class="topbar">
-  <span class="brand">FinChat · Private Office</span>
+  <span class="brand">FinChat · Mi Oficina</span>
   <span class="stamp" id="stamp"></span>
 </div>
 
@@ -152,10 +183,8 @@ tg?.ready(); tg?.expand();
 tg?.setHeaderColor?.('#0D1422');
 tg?.setBackgroundColor?.('#080C15');
 
-// Base de la API: misma origen solo si vive en Vercel; siempre absoluta si no
-const API_BASE = location.hostname.includes('vercel.app')
-  ? ''
-  : 'https://finchat-green.vercel.app';
+// Base de la API: Edge Function de Supabase (todo detrás de Supabase)
+const API_BASE = 'https://yjhbiluxbqyhdxebqjvw.supabase.co/functions/v1/panel-api';
 
 const fmt  = n => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtK = n => { n=Number(n||0); const s=n<0?'−':''; n=Math.abs(n);
@@ -163,11 +192,42 @@ const fmtK = n => { n=Number(n||0); const s=n<0?'−':''; n=Math.abs(n);
 const pctS = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(1)+'%';
 const cls  = n => n>=0?'pos':'neg';
 const tcls = v => v==null?'flat-t':v>=0?'up-t':'down-t';
+const esc  = s => String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+
+// ── Modal: quién me debe (cuentas por cobrar, estilo Lucía) ──
+function closeReceivables(){ const m=document.getElementById('modal-ov'); if(m) m.remove(); }
+function openReceivables(accountId){
+  const acc=(window._accounts||[]).find(a=>a.id===accountId);
+  if(!acc) return;
+  const recs=(window._txs||[]).filter(t=>(t.account_id===acc.id||t.destination_account_id===acc.id)&&
+    ((t.category||'').toLowerCase().includes('préstamo')||(t.description||'').toLowerCase().includes('préstamo')));
+  const total=recs.reduce((s,t)=>s+t.amount,0);
+  const cards=recs.map(t=>{
+    const parts=String(t.description||'').split(' — ');
+    const person=esc(parts[0]||'Pendiente');
+    const motivo=esc(parts.slice(1).join(' — ')||'Préstamo personal');
+    const fecha=t.tx_date? new Date(t.tx_date+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    return `<div class="mcard"><div class="r1"><span class="nm">${person}</span><span class="amt pos">${fmt(t.amount)}</span></div>
+      <div class="r2"><span>${fecha}</span><span>Estado: Pendiente</span></div>
+      <div class="r2"><span>Motivo: ${motivo}</span></div></div>`;
+  }).join('');
+  const ov=document.createElement('div');
+  ov.className='modal-ov'; ov.id='modal-ov';
+  ov.onclick=e=>{ if(e.target===ov) closeReceivables(); };
+  ov.innerHTML=`<div class="modal">
+    <h3>${esc(acc.nombre)}</h3>
+    <div class="msub">Quién me debe</div>
+    <div class="mtotal"><span class="lbl">Total pendiente</span><span class="val">${fmt(total)}</span></div>
+    ${cards||'<div class="empty">Sin préstamos registrados aún.<br>Regístralos en el chat: <b>«Deivy me debe $1,000»</b></div>'}
+    <button class="mclose" onclick="closeReceivables()">Cerrar</button>
+  </div>`;
+  document.body.appendChild(ov);
+}
 
 async function load(){
   try{
     const init = tg?.initData || '';
-    const res  = await fetch(API_BASE + '/api/miniapp?init=' + encodeURIComponent(init));
+    const res  = await fetch(API_BASE + '?init=' + encodeURIComponent(init));
     if(!res.ok) throw 0;
     render(await res.json());
   }catch(e){
@@ -176,7 +236,7 @@ async function load(){
   }
 }
 
-function badge(p){ 
+function badge(p){
   if(p==null) return '<span class="badge flat">— <small>sin base</small></span>';
   return p>=0
     ? `<span class="badge up">▲ ${p.toFixed(1)}%</span>`
@@ -225,6 +285,7 @@ function render(s){
   document.getElementById('stamp').textContent =
     new Date().toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).toUpperCase();
   window._txs = s.transactions || [];
+  window._accounts = s.accounts || [];
   const g = s.growth || {};
   const runway = s.runwayDays===Infinity ? 'Sin prisa' : s.runwayDays + ' días';
   const runPct = s.runwayDays===Infinity ? 100 : Math.min(100,(s.runwayDays/90)*100);
@@ -307,7 +368,7 @@ function render(s){
     });
   }
 
-  // CUENTAS
+  // CUENTAS — agrupadas por sector (estilo Lucía)
   html += `<h2 class="sec">Cuentas</h2>`;
   if(!s.accounts?.length){
     html += `<div class="empty">Aún no tienes cuentas.<br>Escribe en el chat:<br><b>«Creé una cuenta BofA con $500»</b></div>`;
@@ -319,21 +380,59 @@ function render(s){
       });
     });
     Object.values(tmap).forEach(l=>l.sort((a,b)=>new Date(b.tx_date)-new Date(a.tx_date)));
-    const icons={'Líquida':'◈','Crédito':'▣','Ahorro':'◇','Inversión':'◆','Otro':'○'};
-    html += s.accounts.map(a=>{
-      const txs=tmap[a.id]||[];
-      return `<div class="acc">
-        <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
-          <div><div class="acc-name">${icons[a.tipo]||'○'} ${a.nombre}${a.meta?' <span style="color:var(--gold);font-size:10px;letter-spacing:.1em">META</span>':''}</div>
-            <div class="acc-meta">${a.tipo}</div></div>
-          <div class="acc-right"><div class="acc-saldo ${cls(a.saldo)}">${fmt(a.saldo)}</div></div>
+
+    // Clasificación por grupo (misma semántica de Lucía)
+    const isGoal = a => a.proposito==='goal' || a.proposito==='emergency_fund' || a.meta!=null;
+    const groups = [
+      { key:'objetivos',  titulo:'Objetivos y Metas',  ic:'◎', color:'var(--gold-bright)',
+        accs:s.accounts.filter(a=>isGoal(a)) },
+      { key:'liquidas',   titulo:'Cuentas Líquidas',   ic:'◈', color:'var(--pos)',
+        accs:s.accounts.filter(a=>!isGoal(a)&&(a.tipo==='Líquida'||a.tipo==='Ahorro')) },
+      { key:'credito',    titulo:'Tarjetas de Crédito',ic:'▣', color:'var(--neg)',
+        accs:s.accounts.filter(a=>a.tipo==='Crédito'),
+        sum:gs=>{ const disp=gs.reduce((t,a)=>t+Math.max(0,(a.limite||0)-Math.max(0,-a.saldo)),0);
+                  return '$'+disp.toLocaleString('en-US',{maximumFractionDigits:0})+' disponible'; } },
+      { key:'inversiones',titulo:'Inversiones',        ic:'◆', color:'var(--gold)',
+        accs:s.accounts.filter(a=>a.tipo==='Inversión') },
+      { key:'otros',      titulo:'Otras Cuentas',      ic:'○', color:'var(--muted)',
+        accs:s.accounts.filter(a=>!isGoal(a)&&!['Líquida','Ahorro','Crédito','Inversión'].includes(a.tipo)) },
+    ].filter(g=>g.accs.length>0);
+
+    html += groups.map(g=>{
+      const total = g.accs.reduce((t,a)=>t+a.saldo,0);
+      const summary = g.sum ? g.sum(g.accs) : '$'+Math.abs(total).toLocaleString('en-US',{maximumFractionDigits:0});
+      const accsHtml = g.accs.map(a=>{
+        const txs=tmap[a.id]||[];
+        const isReceivable = a.nombre.trim().toLowerCase()==='dinero por cobrar';
+        const headOnclick = isReceivable
+          ? `openReceivables('${a.id.replace(/'/g,'')}')`
+          : `this.parentElement.classList.toggle('open')`;
+        return `<div class="acc">
+          <div class="acc-head" onclick="event.stopPropagation();${headOnclick}">
+            <div><div class="acc-name">${isReceivable?'☰ ':''}${a.nombre}${a.meta?' <span style="color:var(--gold);font-size:10px;letter-spacing:.1em">META</span>':''}</div>
+              <div class="acc-meta">${a.tipo}</div></div>
+            <div class="acc-right"><div class="acc-saldo ${cls(a.saldo)}">${fmt(a.saldo)}</div></div>
+          </div>
+          <div class="txs">${
+            txs.length ? txs.slice(0,15).map(t=>`
+              <div class="tx"><span class="tx-d">${t.description}${t.category?` <span class="tx-cat">· ${t.category}</span>`:''}</span>
+                <span class="tx-a ${t.type==='Ingreso'?'pos':t.type==='Gasto'?'neg':''}">${t.type==='Ingreso'?'+':t.type==='Gasto'?'−':''}${fmt(t.amount)}</span></div>`).join('')
+            : '<div class="tx"><span class="tx-d" style="color:var(--faint)">Sin movimientos aún</span></div>'
+          }</div>
+        </div>`;
+      }).join('');
+      return `<div class="grp open" id="grp-${g.key}">
+        <div class="grp-head" onclick="document.getElementById('grp-${g.key}').classList.toggle('open')">
+          <div style="display:flex;align-items:center;">
+            <span class="grp-ic" style="color:${g.color}">${g.ic}</span>
+            <div>
+              <div class="grp-title">${g.titulo}</div>
+              <div class="grp-sum">${g.accs.length} cuenta${g.accs.length>1?'s':''}</div>
+            </div>
+          </div>
+          <div class="grp-total" style="color:${g.color}">${summary}</div>
         </div>
-        <div class="txs">${
-          txs.length ? txs.slice(0,15).map(t=>`
-            <div class="tx"><span class="tx-d">${t.description}${t.category?` <span class="tx-cat">· ${t.category}</span>`:''}</span>
-              <span class="tx-a ${t.type==='Ingreso'?'pos':t.type==='Gasto'?'neg':''}">${t.type==='Ingreso'?'+':t.type==='Gasto'?'−':''}${fmt(t.amount)}</span></div>`).join('')
-          : '<div class="tx"><span class="tx-d" style="color:var(--faint)">Sin movimientos aún</span></div>'
-        }</div>
+        <div class="grp-body">${accsHtml}</div>
       </div>`;
     }).join('');
   }
