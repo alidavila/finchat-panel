@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>FinChat · Mi Oficina</title>
+<title>FinChat · Private Office</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,7 +101,7 @@
   .act:active{transform:scale(.95);background:rgba(201,170,110,.12);}
   .act .ic{display:block;font-size:17px;margin-bottom:4px;}
 
-  /* ── Cuentas (grupos desplegables y detalle) ── */
+  /* ── Cuentas ── */
   .acc{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:9px;overflow:hidden;}
   .acc-head{display:flex;justify-content:space-between;align-items:center;padding:15px 16px;cursor:pointer;}
   .acc-head:active{background:rgba(255,255,255,.02);}
@@ -121,6 +121,25 @@
   .tx-a{font-family:var(--serif);font-size:15px;font-weight:500;font-variant-numeric:lining-nums;}
   .pos{color:var(--pos);} .neg{color:var(--neg);}
   .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:2px;}
+
+  /* ── Mi Oficina: lectura financiera por preguntas ── */
+  .office-intro{font-size:12px;line-height:1.55;color:var(--muted);margin:-3px 0 14px;}
+  .office-section{margin-bottom:16px;}
+  .office-section-title{font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:15px 2px 8px;}
+  .office-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-bottom:8px;cursor:pointer;transition:border-color .18s ease,background .18s ease;}
+  .office-card:active{transform:scale(.99);}
+  .office-card.open{border-color:var(--line-gold);background:rgba(201,170,110,.035);}
+  .office-card.provisional{border-left:2px solid var(--gold);}
+  .office-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .office-q{font-size:12px;color:var(--muted);line-height:1.35;}
+  .office-a{font-family:var(--serif);font-size:24px;line-height:1.1;font-weight:500;margin-top:6px;}
+  .office-chevron{color:var(--faint);font-size:17px;transition:transform .2s ease;}
+  .office-card.open .office-chevron{transform:rotate(180deg);color:var(--gold);}
+  .office-detail{display:none;border-top:1px solid var(--line);margin-top:12px;padding-top:11px;color:var(--muted);font-size:11px;line-height:1.5;}
+  .office-card.open .office-detail{display:block;}
+  .office-detail>div{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+  .office-detail b{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright);}
+  .office-detail small{font-size:9px;color:var(--faint);}
 
   /* ── Grupos de cuentas (hamburguesas) ── */
   .grp-head{
@@ -169,7 +188,7 @@
 <body>
 
 <div class="topbar">
-  <span class="brand">FinChat · Mi Oficina</span>
+  <span class="brand">FinChat · Private Office</span>
   <span class="stamp" id="stamp"></span>
 </div>
 
@@ -192,7 +211,59 @@ const fmtK = n => { n=Number(n||0); const s=n<0?'−':''; n=Math.abs(n);
 const pctS = v => v==null ? '—' : (v>=0?'+':'')+v.toFixed(1)+'%';
 const cls  = n => n>=0?'pos':'neg';
 const tcls = v => v==null?'flat-t':v>=0?'up-t':'down-t';
-const esc  = s => String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+const esc  = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ── Mi Oficina: preguntas financieras derivadas del snapshot ──
+const officeMoney = n => fmt(n);
+const officePct = v => v==null ? '—' : (v>=0?'+':'') + Number(v).toFixed(1) + '%';
+function officeQuestions(s){
+  const accounts = s.accounts || [];
+  const txs = s.transactions || [];
+  const cash = accounts.filter(a=>a.tipo==='Líquida'||a.tipo==='Ahorro')
+    .reduce((sum,a)=>sum+Math.max(0,Number(a.saldo)||0),0);
+  const pending = txs.filter(t=>/en proceso|procesando|pendiente|pending/i.test(`${t.status||''} ${t.description||''}`));
+  const committed = pending.filter(t=>t.type==='Gasto').reduce((sum,t)=>sum+Math.max(0,Number(t.amount)||0),0);
+  const usable = cash - committed;
+  const debt = Number(s.totalDebt)||0;
+  const income = Number(s.monthlyIncome)||0;
+  const expenses = Number(s.monthlyExpensesTotal)||0;
+  const growth = s.growth || {};
+  return [
+    {id:'patrimonio',section:'Posición',q:'¿Cuál es mi patrimonio real?',a:officeMoney(s.netWorth),
+      e:`Incluye los activos registrados y descuenta ${officeMoney(debt)} de deuda. No es efectivo disponible ni crédito prestado.`,
+      n:'Revisar su composición por cuenta antes de asumir una obligación nueva.',src:'Motor financiero · snapshot actual'},
+    {id:'liquidez',section:'Posición',q:'¿Cuánto dinero puedo usar hoy?',a:officeMoney(usable),
+      e:`Liquidez registrada: ${officeMoney(cash)}. Se apartan ${officeMoney(committed)} de salidas pendientes. El crédito disponible no es dinero propio.`,
+      n:'Separar compromisos y mantener un colchón antes de gastar.',src:`${pending.length} movimiento(s) pendiente(s) detectado(s)`,provisional:pending.length>0},
+    {id:'deuda',section:'Obligaciones',q:'¿Cuánto debo realmente?',a:officeMoney(debt),
+      e:`La deuda activa identificada suma ${officeMoney(debt)}. Un pago de tarjeta reduce una obligación; no es gasto de consumo.`,
+      n:'Ordenar por fecha límite, interés y efecto sobre el flujo.',src:'Cuentas de crédito + deudas activas'},
+    {id:'flujo',section:'Flujo',q:'¿Cómo va mi flujo de caja?',a:officeMoney(income-expenses),
+      e:`Este mes entraron ${officeMoney(income)} y salieron ${officeMoney(expenses)}. Los pagos de deuda se muestran separados cuando están identificados.`,
+      n:'Comparar ingresos próximos contra obligaciones con fecha, no solo contra el saldo de hoy.',src:`Mes ${s.month||'actual'}`},
+    {id:'crecimiento',section:'Crecimiento',q:'¿Estoy creciendo de verdad?',a:officePct(growth.momGrowthPct),
+      e:`La variación mensual registrada es ${officePct(growth.momGrowthPct)} y el ritmo anualizado es ${officePct(growth.annualizedPct)}. Hay que separar aportes, retiros, mercado y deuda.`,
+      n:'Leer la trayectoria histórica, no confundir un movimiento interno con crecimiento.',src:'Serie histórica del motor'},
+    {id:'conciliacion',section:'Control',q:'¿Qué todavía no cuadra?',a:`${pending.length} pendiente${pending.length===1?'':'s'}`,
+      e:pending.length?`Hay ${pending.length} movimiento(s) pendientes por ${officeMoney(committed)}. Se conservan provisionales hasta tener el dato final, sin duplicar.`:'No hay movimientos pendientes identificados en el snapshot cargado.',
+      n:'Actualizar el registro provisional contra la captura final cuando llegue.',src:'Estado de las transacciones',provisional:pending.length>0},
+    {id:'decision',section:'Dirección',q:'¿Qué decisión aumenta mi libertad?',a:debt>usable?'Primero estabilidad':'Hay margen, con reservas',
+      e:debt>usable?'La deuda supera la liquidez utilizable: una compra nueva con tarjeta puede trasladar el problema y estrechar el flujo.':'La liquidez utilizable supera la deuda identificada, pero los compromisos pendientes deben reservarse antes de decidir.',
+      n:'Simular cada compra o pago contra liquidez, deuda y obligaciones con fecha.',src:'Lectura prudente del snapshot'}
+  ];
+}
+function officeSections(questions){
+  const sections=[];
+  questions.forEach(q=>{let s=sections.find(x=>x.name===q.section);if(!s){s={name:q.section,items:[]};sections.push(s);}s.items.push(q);});
+  return sections;
+}
+function renderOffice(s){
+  const questions = Array.isArray(s.office) ? s.office : officeQuestions(s);
+  const labels = {'Posición':'Tu posición','Obligaciones':'Lo que debes','Flujo':'Tu flujo','Crecimiento':'Tu crecimiento','Control':'Control','Dirección':'Dirección'};
+  return `<h2 class="sec">Preguntas clave</h2><div class="office-intro">No te lanzo números sueltos: te doy una lectura y el siguiente paso.</div>`+
+    officeSections(questions).map(section=>`<div class="office-section"><div class="office-section-title">${labels[section.name]||section.name}</div>`+
+      section.items.map(q=>`<article class="office-card${q.provisional?' provisional':''}" onclick="this.classList.toggle('open')"><div class="office-card-top"><div><div class="office-q">${q.question || q.q}</div><div class="office-a">${q.answer || q.a}</div></div><span class="office-chevron">⌄</span></div><div class="office-detail"><div><b>Qué significa</b><span>${q.explanation || q.e}</span></div><div><b>Próximo movimiento</b><span>${q.next || q.n}</span></div><small>Fuente: ${q.source || q.src}${q.provisional?' · Provisional / revisar':''}</small></div></article>`).join('')+`</div>`).join('');
+}
 
 // ── Modal: quién me debe (cuentas por cobrar, estilo Lucía) ──
 function closeReceivables(){ const m=document.getElementById('modal-ov'); if(m) m.remove(); }
@@ -287,6 +358,7 @@ function render(s){
   window._txs = s.transactions || [];
   window._accounts = s.accounts || [];
   const g = s.growth || {};
+  const office = Array.isArray(s.office) ? s.office : officeQuestions(s);
   const runway = s.runwayDays===Infinity ? 'Sin prisa' : s.runwayDays + ' días';
   const runPct = s.runwayDays===Infinity ? 100 : Math.min(100,(s.runwayDays/90)*100);
   const sr = Math.max(0, Math.min(100, s.savingsRatePct ?? 0));
@@ -303,6 +375,9 @@ function render(s){
       <span class="sub">este mes · ritmo anualizado ${pctS(g.annualizedPct)}</span>
     </div>
   </div>
+
+  <!-- MI OFICINA -->
+  ${renderOffice({...s, office})}
 
   <!-- MÉTRICAS -->
   <h2 class="sec">Estado del mes</h2>
