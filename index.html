@@ -261,7 +261,7 @@ function openReceivables(accountId){
 async function load(){
   try{
     const init = tg?.initData || '';
-    const res  = await fetch(API_BASE + '?init=' + encodeURIComponent(init));
+    const res  = await fetch(API_BASE + '?init=' + encodeURIComponent(init) + '&cb=' + Date.now(), { cache: 'no-store' });
     if(!res.ok) throw 0;
     render(await res.json());
   }catch(e){
@@ -485,6 +485,8 @@ function render(s){
 
 load();
 setInterval(load, 90000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+window.addEventListener('pageshow', () => load());
 </script>
 </body>
 </html>
